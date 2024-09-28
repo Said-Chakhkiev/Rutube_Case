@@ -1,4 +1,4 @@
-
+<img src="https://github.com/Said-Chakhkiev/Rutube_Case/blob/main/img/Logo_RUTUBE_white_color.png" align="left" style="width: 100%"/>  
 ██████╗░██╗░░░██╗████████╗██╗░░░██╗██████╗░███████╗
 ██╔══██╗██║░░░██║╚══██╔══╝██║░░░██║██╔══██╗██╔════╝
 ██████╔╝██║░░░██║░░░██║░░░██║░░░██║██████╦╝█████╗░░
