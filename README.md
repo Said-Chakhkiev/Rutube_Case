@@ -8,7 +8,7 @@
 
 1. Клонируйте репозиторий:
     ```bash
-    git clone https://github.com/yourusername/rustore-demographic-prediction.git
+    git clone https://github.com/Said-Chakhkiev/rustore-demographic-prediction.git
     ```
 2. Перейдите в директорию проекта:
     ```bash
