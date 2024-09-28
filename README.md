@@ -27,3 +27,10 @@
 - `scripts/` - скрипты для подготовки данных, обучения и предсказаний.
 - `train.py` - скрипт для обучения модели.
 - `predict.py` - скрипт для предсказаний.
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+```
