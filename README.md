@@ -10,11 +10,7 @@
     ```bash
    https://github.com/Said-Chakhkiev/Rutube_Case/tree/main
     ```
-2. Перейдите в директорию проекта:
-    ```bash
-    cd rustore-demographic-prediction
-    ```
-3. Установите необходимые зависимости:
+2. Установите необходимые зависимости:
     ```bash
     pip install -r requirements.txt
     ```
