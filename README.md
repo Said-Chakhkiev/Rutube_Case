@@ -1,4 +1,4 @@
-<img src="https://github.com/Said-Chakhkiev/Rutube_Case/blob/main/img/Logo_RUTUBE_white_color.png" align="centr" style="width: 100%"/>  
+<img src="https://github.com/Said-Chakhkiev/Rutube_Case/blob/main/img/Logo_RUTUBE_dark_color.png" align="centr" style="width: 100%"/>  
 
 <div align="center">
 <h4>Этот проект представляет собой нейронную сеть для предсказания социально-демографических характеристик пользователей на основе данных, предоставленных RUTUB. Наша цель - создать точную и эффективную модель, которая поможет лучше понимать аудиторию и улучшать пользовательский опыт.</h4>
