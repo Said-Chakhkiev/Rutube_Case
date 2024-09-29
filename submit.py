@@ -5,36 +5,11 @@ import pytz
 from tqdm.auto import tqdm
 import numpy as np
 
-test_events = pd.read_csv('S:\\DataSpellProjects\\rurube_dem\\train_events.csv')
-train_targets = pd.read_csv('S:\\DataSpellProjects\\rurube_dem\\train_targets.csv')
-video_info = pd.read_csv('S:\\DataSpellProjects\\rurube_dem\\video_info_v2.csv')
+test_events = pd.read_csv('data/test_events.csv')
+video_info = pd.read_csv('data/video_info_v2.csv')
+sbm = pd.read_csv("data/subm.csv")
 
-test = pd.merge(left=test_events, right=train_targets, left_on="viewer_uid", right_on="viewer_uid")
-
-import pandas as pd
-from sklearn.model_selection import train_test_split
-
-# Предположим, у тебя есть полный набор данных train_events
-# Полный набор данных
-X_full = test.drop('age_class', axis=1)  # Замените 'target_column' на вашу целевую переменную
-y_full = test['age_class']
-
-# Выбираем 100k строк с тем же балансом классов
-X_sampled, _, y_sampled, _ = train_test_split(
-    X_full, y_full,
-    train_size=100000,  # Берем 100k строк
-    stratify=y_full,  # Стратификация по классам
-    random_state=42
-)
-
-# Объединяем обратно для получения итогового датасета
-train_events_sampled = X_sampled.copy()
-train_events_sampled['age_class'] = y_sampled  # Добавляем обратно целевую переменную
-
-test = train_events_sampled
-
-test = test.merge(right=video_info, left_on="rutube_video_id", right_on="rutube_video_id")
-
+test = test_events.merge(video_info, left_on="rutube_video_id", right_on="rutube_video_id")
 test_le = test.drop(columns=["author_id", "title"])
 columns = test.drop(
     ["event_timestamp", "rutube_video_id", "viewer_uid", "title", "author_id", "total_watchtime",
@@ -47,7 +22,6 @@ test_le.head()
 
 ### Достаем основные сессионные фичи
 test_le['event_timestamp'] = pd.to_datetime(test_le['event_timestamp'], errors='coerce')
-
 # Создаем экземпляр TimezoneFinder
 tf = TimezoneFinder()
 
@@ -201,7 +175,6 @@ def correct_time(row):
 tqdm.pandas()
 # Применение функции для корректировки времени
 test_le['local_time'] = test_le.progress_apply(correct_time, axis=1)
-
 test_le['local_time'] = test_le['local_time'].astype(str)
 
 # Удаляем информацию о временной зоне (+HH:MM, -HH:MM или Z) в конце строки
@@ -212,7 +185,6 @@ test_le['local_time'] = pd.to_datetime(test_le['local_time'], errors='coerce')
 
 # Шаг 1: Сортировка данных по 'viewer_uid' и 'local_time'
 test_le = test_le.sort_values(['viewer_uid', 'local_time']).reset_index(drop=True)
-test_le.head()
 
 # Шаг 2: Извлечение временных признаков
 test_le['hour'] = test_le['local_time'].dt.hour
@@ -286,13 +258,10 @@ additional_watchtime_features['std_watchtime_per_video'] = additional_watchtime_
 
 test_le = pd.merge(test_le, additional_watchtime_features, on='viewer_uid', how='left')
 
-test_done = test_le.drop(
+X_test = test_le.drop(
     columns=["event_timestamp", "viewer_uid", "rutube_video_id", "session_duration",
              "video_count_per_session", "total_watchtime_per_session", "session_id", "new_session", "day_of_week",
-             "local_time", "end_time", "prev_end_time", "age", "sex", "age_class"])
-
-y_sex = test_le['sex']
-y_age_class = test_le['age_class']
+             "local_time", "end_time", "prev_end_time"])
 
 from joblib import load
 
@@ -301,32 +270,36 @@ y_age_pred_test = []
 
 for i in tqdm(range(3)):
     xgb_sex_loaded = load(f'1xgb_sex_model_fold_{i}.pkl')  # Загружаем модель для пола
-    y_sex_pred_test.append(xgb_sex_loaded.predict_proba(test_done))
+    y_sex_pred_test.append(xgb_sex_loaded.predict_proba(X_test))
 
 for i in tqdm(range(3)):
     # Загрузка модели для возрастных категорий
     xgb_age_class_loaded = load(f'1xgb_age_model_fold_{i}.pkl')  # Загружаем модель для возрастных категорий
-    y_age_pred_test.append(xgb_age_class_loaded.predict_proba(test_done))
+    y_age_pred_test.append(xgb_age_class_loaded.predict_proba(X_test))
 
 y_sex_pred_test_avg = np.mean(y_sex_pred_test, axis = 0)
 y_age_pred_test_avg = np.mean(y_age_pred_test, axis = 0)
 
 y_sex_pred_test_classes = np.argmax(y_sex_pred_test_avg, axis=1)
 y_age_pred_test_classes = np.argmax(y_age_pred_test_avg, axis=1)  # Берем класс с максимальной вероятностью
-#%%
-from sklearn.metrics import accuracy_score, f1_score
-# Accuracy и F1 для пола
-sex_accuracy_test = accuracy_score(y_sex, y_sex_pred_test_classes)
-sex_f1_test = f1_score(y_sex, y_sex_pred_test_classes, average='weighted')
 
-# Accuracy и F1 для возрастных категорий
-age_accuracy_test = accuracy_score(y_age_class, y_age_pred_test_classes)
-age_f1_test = f1_score(y_age_class, y_age_pred_test_classes, average='weighted')
+submission = pd.DataFrame(columns=['viewer_uid',"age", 'sex', 'age_class'])
+submission['viewer_uid'] = test_le['viewer_uid']
 
-final_score_test = 0.7 * age_f1_test + 0.3 * sex_accuracy_test
+submission['sex'] = y_sex_pred_test_classes
+submission['age_class'] = y_age_pred_test_classes
 
-# Печать результатов
-print(f'F1 для пола: {sex_f1_test}')
-print(f'F1 для возрастных категорий: {age_f1_test}')
-print(f'Accuracy для пола: {sex_accuracy_test}')
-print(f'Итоговая метрика: {final_score_test}')
+# Функция для вычисления моды (наиболее частого значения)
+def mode_agg(x):
+    return x.mode().iloc[0] if not x.mode().empty else None
+
+# Группировка по viewer_uid и применение моды к остальным колонкам
+grouped_df = submission.groupby('viewer_uid').agg({
+    'age': mode_agg,
+    'sex': mode_agg,
+    'age_class': mode_agg
+}).reset_index()
+
+grouped_df["sex"] = grouped_df["sex"].apply(lambda x: 'female' if x == 1 else 'male')
+
+grouped_df.to_csv("submission.csv", index=False)
